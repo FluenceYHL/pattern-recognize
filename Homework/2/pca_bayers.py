@@ -65,11 +65,15 @@ class YHL_pca():
         return k, mean_value, primary_components, features.dot(primary_components)
 
 
+def gaussi(x, mean_value, var_value):
+    res = 1 / (math.sqrt(2 * math.pi * var_value))
+    res = res * math.exp((-1 * (it - mean_value) *
+                          (it - mean_value) / (2 * var_value)))
+    return res
+
+
 def after_pro(x, mean_value, var_value, pre):
-    gaussi = 1 / (math.sqrt(2 * math.pi * var_value))
-    gaussi = gaussi * \
-        math.exp((-1 * (x - mean_value) * (x - mean_value) / (2 * var_value)))
-    return gaussi * pre
+    return gaussi(x, mean_value, var_value) * pre
 
 
 if __name__ == '__main__':
@@ -94,52 +98,87 @@ if __name__ == '__main__':
     print(mean_boys)
     print(var_boys)
 
+    plt.hist(new_girls, 20, color='blue', alpha=0.8, rwidth=0.9)
+    girls_x = numpy.arange(-40, 40, 0.1)
+    girls_y = []
+    for it in girls_x:
+        res = gaussi(it, mean_girls, var_girls)
+        girls_y.append(res * 120)
+    plt.plot(girls_x, girls_y, color='green')
+    # plt.show()
+
+    plt.hist(new_boys, 20, color='black', alpha=0.8, rwidth=0.9)
+    boys_x = numpy.arange(-40, 40, 0.1)
+    boys_y = []
+    for it in boys_x:
+        res = gaussi(it, mean_boys, var_boys)
+        boys_y.append(res * 120)
+    plt.plot(boys_x, boys_y, color='red')
+    plt.legend(['女生类条件概率密度分布', '男生类条件概率密度分布'])
+    plt.show()
+
+    girls_x = numpy.arange(-40, 40, 0.1)
+    girls_y = []
+    for it in girls_x:
+        res = gaussi(it, mean_girls, var_girls)
+        girls_y.append(res)
+    plt.plot(girls_x, girls_y)
+    # plt.show()
+
+    boys_x = numpy.arange(-40, 40, 0.1)
+    boys_y = []
+    for it in boys_x:
+        res = gaussi(it, mean_boys, var_boys)
+        boys_y.append(res)
+    plt.plot(boys_x, boys_y)
+    plt.legend(['女生类条件概率密度分布', '男生类条件概率密度分布'])
+    plt.show()
+
     x, y = getTest()
     x = x - numpy.mean(x, axis=0)
     x = x.dot(primary_components)
     x.resize(x.shape[:1])
     print(x.shape)
+    rate = 1e-2
+    accuracy = []
+    while(rate <= 1):
+        cnt = 0
+        correct = 0
+        for it in x:
+            l = after_pro(it, mean_girls, var_girls, rate)
+            r = after_pro(it, mean_boys, var_boys, 1 - rate)
+            res = 0 if(l > r) else 1
+            if(res == y[cnt]):
+                correct = correct + 1
+            cnt = cnt + 1
+        print('正确率　' + str(correct / len(x)))
+        accuracy.append([1 - rate, correct / len(x)])
+        rate += 0.01
+    accuracy = numpy.array(accuracy)
+    plt.plot(accuracy[:, 0], accuracy[:, 1])
+    plt.title('正确率随男生先验概率的变化')
+    plt.xlabel('男生先验概率')
+    plt.ylabel('正确率')
+    plt.show()
 
-    # rate = 1e-2
-    # accuracy = []
-    # while(rate <= 1):
-    #     cnt = 0
-    #     correct = 0
-    #     for it in x:
-    #         l = after_pro(it, mean_girls, var_girls, 1 - rate)
-    #         r = after_pro(it, mean_boys, var_boys, rate)
-    #         res = 0 if(l > r) else 1
-    #         if(res == y[cnt]):
-    #             correct = correct + 1
-    #         cnt = cnt + 1
-    #     print('正确率　' + str(correct / len(x)))
-    #     accuracy.append([rate, correct / len(x)])
-    #     rate += 0.01
-    # accuracy = numpy.array(accuracy)
-    # plt.plot(accuracy[:, 0], accuracy[:, 1])
-    # plt.title('正确率随男生先验概率的变化')
-    # plt.xlabel('男生先验概率')
-    # plt.ylabel('正确率')
-    # plt.show()
-
-    # x, y = getTest()
-    # b = []
-    # g = []
-    # cnt = 0
-    # for it in x:
-    #     if(y[cnt] == 0):
-    #         g.append(it)
-    #     else:
-    #         b.append(it)
-    #     cnt = cnt + 1
-    # b = numpy.array(b)
-    # g = numpy.array(g)
-    # rate = primary_components[1] / primary_components[0]
-    # plt.scatter(g[:, 0], g[:, 1])
-    # plt.scatter(b[:, 0], b[:, 1])
-    # plt.plot([150, 195], [35, 35 + 45 * (rate)], color='red')
-    # plt.legend(['新特征方向', '女生', '男生'])
-    # plt.title('模式识别　1-Bayers 分类器')
-    # plt.xlabel('男生先验概率')
-    # plt.ylabel('正确率')
-    # plt.show()
+    x, y = getTest()
+    b = []
+    g = []
+    cnt = 0
+    for it in x:
+        if(y[cnt] == 0):
+            g.append(it)
+        else:
+            b.append(it)
+        cnt = cnt + 1
+    b = numpy.array(b)
+    g = numpy.array(g)
+    rate = primary_components[1] / primary_components[0]
+    plt.scatter(g[:, 0], g[:, 1])
+    plt.scatter(b[:, 0], b[:, 1])
+    plt.plot([150, 195], [35, 35 + 45 * (rate)], color='red')
+    plt.legend(['新特征方向', '女生', '男生'])
+    plt.title('模式识别　1-Bayers 分类器')
+    plt.xlabel('男生先验概率')
+    plt.ylabel('正确率')
+    plt.show()
