@@ -59,11 +59,11 @@ class Bayers():
             res.append(self.predict(it))
         return numpy.array(res)
 
-    def score(self, x, y, rate=0.5):
+    def score(self, x, y):
         cnt = 0
         correct = 0
         for it in x:
-            res = self.predict(it, rate)
+            res = self.predict(it)
             if(res == y[cnt]):
                 correct = correct + 1
             cnt = cnt + 1
@@ -76,47 +76,29 @@ if __name__ == '__main__':
     boys = getData('../dataSet/male.txt')
     one = Bayers()
     one.fit(girls, boys)
-    x = numpy.r_[girls, boys]
-    y = [0] * len(girls)
-    for it in boys:
-        y.append(1)
+    x, y = getTest()
+    one.score(x, y)
 
-    # x, y = getTest()
-    # one.score(x, y)
+    l = len(girls)
+    r = len(boys)
+    correct = 0
+    for i in range(l):
+        new_girls = []
+        for j in range(l):
+            if(j != i):
+                new_girls.append(girls[j])
+        new_girls = numpy.array(new_girls)
+        one.fit(new_girls, boys)
+        if(one.predict(girls[i]) == 0):
+            correct = correct + 1
 
-    cmap_light = ListedColormap(['#AAAAFF', '#AAFFAA', '#FFAAAA'])
-    ori_light = ListedColormap(['r', 'g'])
-    # 获取边界范围, 为了产生数据
-    x1_min, x1_max = numpy.min(x[:, 0]) - 1, numpy.max(x[:, 0]) + 1
-    x2_min, x2_max = numpy.min(x[:, 1]) - 1, numpy.max(x[:, 1]) + 1
-    # 生成新的数据, 并调用meshgrid网格搜索函数帮助我们生成矩阵
-    xx1, xx2 = numpy.meshgrid(numpy.arange(
-        x1_min, x1_max, 0.1), numpy.arange(x2_min, x2_max, 0.1))
-    # 有了新的数据, 我们需要将这些数据输入到分类器获取到结果, 但是因为输入的是矩阵, 我们需要给你将其转换为符合条件的数据
-    Z = one.predict_all(numpy.c_[xx1.ravel(), xx2.ravel()])
-    # 这个时候得到的是Z还是一个向量, 将这个向量转为矩阵即可
-    Z = Z.reshape(xx1.shape)
-    plt.figure()
-    # 分解的时候有背景颜色
-    plt.pcolormesh(xx1, xx2, Z, cmap=cmap_light)
-    # 为什么需要输入矩阵, 因为等高线函数其实是3D函数, 3D坐标是三个平面, 平面对应矩阵
-    plt.contour(xx1, xx2, Z, cmap=plt.cm.RdYlBu)
-    plt.scatter(x[:, 0], x[:, 1], c=y, cmap=ori_light)
-    plt.title('Bayers 分类器决策边界')
-    plt.xlabel('身高')
-    plt.ylabel('体重')
-    plt.savefig('Bayers 分类器决策边界.png')
-    plt.show()
-
-    # x, y = getTest()
-    # accuracy = []
-    # rate = 1e-2
-    # while(rate <= 1):
-    #     accuracy.append([rate, 1 - one.score(x, y, rate)])
-    #     rate += 0.01
-    # accuracy = numpy.array(accuracy)
-    # plt.plot(accuracy[:, 0], accuracy[:, 1])
-    # plt.title('随着女生先验概率递增，错误率的变化曲线')
-    # plt.xlabel('女生先验概率')
-    # plt.ylabel('错误率')
-    # plt.show()
+    for i in range(r):
+        new_boys = []
+        for j in range(r):
+            if(j != i):
+                new_boys.append(boys[j])
+        new_boys = numpy.array(new_boys)
+        one.fit(girls, new_boys)
+        if(one.predict(boys[i]) == 1):
+            correct = correct + 1
+    print('正确率　　:  ' + str(correct / (l + r)))
